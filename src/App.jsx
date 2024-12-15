@@ -38,7 +38,7 @@ const App = () => {
 
   const calculateArrowPositions = (coordinates) => {
     const positions = [];
-    const desiredArrowSpacing = 2500; // Spacing between arrows in meters
+    const desiredArrowSpacing = 2500; // Spacing between arrows
     let currentDistance = 0;
     const offset = 0.0001;
 
@@ -105,14 +105,14 @@ const App = () => {
 
   const calculateArrowRotation = (coordinates, index) => {
     if (index === 0) {
-      // Special case for the first arrow, use the bearing between the first two points
+      //for the first arrow
       const [firstCoord, secondCoord] = coordinates;
       return Math.atan2(
         secondCoord.latitude - firstCoord.latitude,
         secondCoord.longitude - firstCoord.longitude
       ) * (360 / Math.PI);
     } else if (index === coordinates.length - 1) {
-      // Special case for the last arrow, use the bearing between the last two points
+      // for the last arrow
       const [secondLastCoord, lastCoord] = [
         coordinates[coordinates.length - 2],
         coordinates[coordinates.length - 1],
