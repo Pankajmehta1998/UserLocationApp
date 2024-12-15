@@ -99,37 +99,29 @@ const App = () => {
         latitude: 28.4595 + (Math.random() - 0.5) * 0.01,
         longitude: 77.0266 + (Math.random() - 0.5) * 0.01,
       });
-    }, 600000); // for Updating users locations every 10 minutes
+    }, 600000); // Update users locations every 10 minutes
     return () => clearInterval(locationInterval);
   }, []);
 
   const calculateArrowRotation = (coordinates, index) => {
-    if (index === 0 || index === coordinates.length - 1) {
-      // for first and last arrows
-      const [firstCoord, secondCoord] = [
-        coordinates[0],
-        coordinates[1],
-      ];
+    if (index === 0) {
+      // Special case for the first arrow, use the bearing between the first two points
+      const [firstCoord, secondCoord] = coordinates;
+      return Math.atan2(
+        secondCoord.latitude - firstCoord.latitude,
+        secondCoord.longitude - firstCoord.longitude
+      ) * (360 / Math.PI);
+    } else if (index === coordinates.length - 1) {
+      // Special case for the last arrow, use the bearing between the last two points
       const [secondLastCoord, lastCoord] = [
         coordinates[coordinates.length - 2],
         coordinates[coordinates.length - 1],
       ];
-
-      if (index === 0) {
-        // First arrow
-        return Math.atan2(
-          secondCoord.latitude - firstCoord.latitude,
-          secondCoord.longitude - firstCoord.longitude
-        ) * (360 / Math.PI);
-      } else {
-        // Last arrow
-        return Math.atan2(
-          lastCoord.latitude - secondLastCoord.latitude,
-          lastCoord.longitude - secondLastCoord.longitude
-        ) * (360 / Math.PI);
-      }
+      return Math.atan2(
+        lastCoord.latitude - secondLastCoord.latitude,
+        lastCoord.longitude - secondLastCoord.longitude
+      ) * (360 / Math.PI);
     } else {
-      // For all other arrows
       const prevCoord = coordinates[index - 1];
       const currCoord = coordinates[index];
       return Math.atan2(
