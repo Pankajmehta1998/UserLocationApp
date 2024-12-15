@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
 const OSRM_API_URL = 'https://router.project-osrm.org/route/v1/driving/';
 
 const App = () => {
   const [startLocation, setStartLocation] = useState({
-    latitude: 28.6139, // New Delhi coordinates
+    latitude: 28.6139,
     longitude: 77.2090,
   });
   const [endLocation, setEndLocation] = useState({
-    latitude: 28.4595, // Gurugram coordinates
+    latitude: 28.4595,
     longitude: 77.0266,
   });
   const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [arrowPositions, setArrowPositions] = useState([]);
 
-  // Function to fetch route from OSRM API
   const fetchRoute = async () => {
     try {
       const response = await fetch(
@@ -29,25 +29,66 @@ const App = () => {
           longitude: point[0],
         }));
         setRouteCoordinates(formattedRoute);
+        calculateArrowPositions(formattedRoute);
       }
     } catch (error) {
       console.error('Error fetching route:', error);
     }
   };
 
-  // Fetch route on initial load and every 10 minutes
+  const calculateArrowPositions = (coordinates) => {
+    const positions = [];
+    const desiredArrowSpacing = 3000; // Spacing between arrows in meters
+    let currentDistance = 0;
+    const offset = 0.0001;
+
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      const { latitude: lat1, longitude: lon1 } = coordinates[i];
+      const { latitude: lat2, longitude: lon2 } = coordinates[i + 1];
+      const distance = calculateDistance(lat1, lon1, lat2, lon2);
+      currentDistance += distance;
+
+      if (currentDistance >= desiredArrowSpacing) {
+        const midpoint = {
+          latitude: (lat1 + lat2) / 2,
+          longitude: (lon1 + lon2) / 2,
+        };
+        positions.push({
+          latitude: midpoint.latitude + offset,
+          longitude: midpoint.longitude,
+        });
+        currentDistance = 0;
+      }
+    }
+
+    const lastCoord = coordinates[coordinates.length - 1];
+    positions.push({
+      latitude: lastCoord.latitude + offset,
+      longitude: lastCoord.longitude,
+    });
+
+    setArrowPositions(positions);
+  };
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c * 1000; // Convert to meters
+  };
+
   useEffect(() => {
     fetchRoute();
-
     const intervalId = setInterval(() => {
       fetchRoute();
-    }, 600000);
-
-    // Cleanup the interval on component unmount
+    }, 600000); // Update the route every 10 minutes
     return () => clearInterval(intervalId);
   }, [startLocation, endLocation]);
 
-  // Optional: Update start and end location after every 10 minutes
   useEffect(() => {
     const locationInterval = setInterval(() => {
       setStartLocation({
@@ -58,11 +99,24 @@ const App = () => {
         latitude: 28.4595 + (Math.random() - 0.5) * 0.01,
         longitude: 77.0266 + (Math.random() - 0.5) * 0.01,
       });
-    }, 600000);
-
-    // Cleanup interval on component unmount
+    }, 600000); // Update users locations every 10 minutes
     return () => clearInterval(locationInterval);
   }, []);
+
+  const calculateArrowRotation = (coordinates, index) => {
+    if (index === 0 || index === coordinates.length - 1) return 0;
+
+    const prevCoord = coordinates[index - 1];
+    const currCoord = coordinates[index];
+
+    // Calculate the angle between the current and previous points
+    const angle = Math.atan2(currCoord.latitude - prevCoord.latitude, currCoord.longitude - prevCoord.longitude);
+
+    // Convert the angle from radians to degrees
+    const rotation = (angle * 360) / Math.PI;
+
+    return rotation;
+  };
 
   return (
     <View style={styles.container}>
@@ -75,20 +129,33 @@ const App = () => {
           longitudeDelta: Math.abs(startLocation?.longitude - endLocation?.longitude) + 0.1,
         }}
       >
-        {/* Marker for Start Location */}
         <Marker coordinate={startLocation} title="Start: New Delhi" />
-        
-        {/* Marker for End Location */}
         <Marker coordinate={endLocation} title="End: Gurugram" />
 
-        {/* Polyline for Route */}
         {routeCoordinates?.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
             strokeWidth={4}
             strokeColor="red"
+            lineCap="round"
+            lineJoin="round"
+            geodesic={true}
           />
         )}
+
+        {arrowPositions.map((position, index) => (
+          <Marker
+            key={`arrow-${index}`}
+            coordinate={position}
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={calculateArrowRotation(routeCoordinates, index)}
+          >
+            <Image
+              source={require('./assets/images/pngtree-red-arrow-irregular-triangle-unidirectional-linear-shape-png-image_4362204.png')}
+              style={{ width: 30, height: 20 }}
+            />
+          </Marker>
+        ))}
       </MapView>
     </View>
   );
@@ -104,4 +171,3 @@ const styles = StyleSheet.create({
 });
 
 export default App;
-
