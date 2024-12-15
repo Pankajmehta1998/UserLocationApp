@@ -38,11 +38,11 @@ const App = () => {
 
   const calculateArrowPositions = (coordinates) => {
     const positions = [];
-    const desiredArrowSpacing = 3000; // Spacing between arrows in meters
+    const desiredArrowSpacing = 2500; // Spacing between arrows in meters
     let currentDistance = 0;
     const offset = 0.0001;
 
-    for (let i = 0; i < coordinates.length - 1; i++) {
+    for (let i = 0; i < coordinates?.length - 1; i++) {
       const { latitude: lat1, longitude: lon1 } = coordinates[i];
       const { latitude: lat2, longitude: lon2 } = coordinates[i + 1];
       const distance = calculateDistance(lat1, lon1, lat2, lon2);
@@ -99,25 +99,45 @@ const App = () => {
         latitude: 28.4595 + (Math.random() - 0.5) * 0.01,
         longitude: 77.0266 + (Math.random() - 0.5) * 0.01,
       });
-    }, 600000); // Update users locations every 10 minutes
+    }, 600000); // for Updating users locations every 10 minutes
     return () => clearInterval(locationInterval);
   }, []);
 
   const calculateArrowRotation = (coordinates, index) => {
-    if (index === 0 || index === coordinates.length - 1) return 0;
+    if (index === 0 || index === coordinates.length - 1) {
+      // for first and last arrows
+      const [firstCoord, secondCoord] = [
+        coordinates[0],
+        coordinates[1],
+      ];
+      const [secondLastCoord, lastCoord] = [
+        coordinates[coordinates.length - 2],
+        coordinates[coordinates.length - 1],
+      ];
 
-    const prevCoord = coordinates[index - 1];
-    const currCoord = coordinates[index];
-
-    // Calculate the angle between the current and previous points
-    const angle = Math.atan2(currCoord.latitude - prevCoord.latitude, currCoord.longitude - prevCoord.longitude);
-
-    // Convert the angle from radians to degrees
-    const rotation = (angle * 360) / Math.PI;
-
-    return rotation;
+      if (index === 0) {
+        // First arrow
+        return Math.atan2(
+          secondCoord.latitude - firstCoord.latitude,
+          secondCoord.longitude - firstCoord.longitude
+        ) * (360 / Math.PI);
+      } else {
+        // Last arrow
+        return Math.atan2(
+          lastCoord.latitude - secondLastCoord.latitude,
+          lastCoord.longitude - secondLastCoord.longitude
+        ) * (360 / Math.PI);
+      }
+    } else {
+      // For all other arrows
+      const prevCoord = coordinates[index - 1];
+      const currCoord = coordinates[index];
+      return Math.atan2(
+        currCoord.latitude - prevCoord.latitude,
+        currCoord.longitude - prevCoord.longitude
+      ) * (360 / Math.PI);
+    }
   };
-
   return (
     <View style={styles.container}>
       <MapView
